@@ -213,7 +213,7 @@ const analysisImage = async (image) => {
 		return response.text();
 	} catch (error) {
 		console.error("Gemini analysis error:", error);
-		return "No object identified.";
+		return `No object identified. (Debug: ${error.message})`;
 	}
 }
 
