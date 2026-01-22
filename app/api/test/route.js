@@ -1,27 +1,27 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server";
-import { DataAPIClient } from "@datastax/astra-db-ts";
-import { UUID, ObjectId } from '@datastax/astra-db-ts';
-
-
-// Initialize the client
-const client = new DataAPIClient(process.env.ASTRA_DB_APPLICATION_TOKEN);
-const db = client.db(process.env.ASTRA_DB_API_ENDPOINT);
 
 export async function GET(req) {
-
-	const collection = db.collection('pokedex');
-
-	const poke = await collection.findOne({
-		_id: {
-			"$uuid": 'e718bc1c-139b-4d9f-bd06-eee0529e37e6'
+	try {
+		const apiKey = process.env.GEMINI_API_KEY;
+		if (!apiKey) {
+			return NextResponse.json({ error: "Missing GEMINI_API_KEY" }, { status: 500 });
 		}
-	});
 
-	return NextResponse.json({
-		success: true,
-		poke
-	}, {
-		status: 200
-	});
+		console.log("Fetching available models...");
+		const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+		const data = await response.json();
 
-};
+		return NextResponse.json({
+			success: true,
+			models: data
+		}, { status: 200 });
+
+	} catch (error) {
+		console.error("Debug Error:", error);
+		return NextResponse.json({
+			success: false,
+			error: error.message
+		}, { status: 500 });
+	}
+}
