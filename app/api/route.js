@@ -24,7 +24,9 @@ export async function POST(req) {
 	let image = await cloudinary.uploader.upload(capture.image);
 	let imageDescription = await analysisImage(capture.image);
 
-	if (imageDescription === "No object identified.") {
+	// Relaxed check to allow for debug messages or slight variations
+	if (imageDescription.includes("No object identified.")) {
+		console.log("No object identified fallback triggered. Description:", imageDescription);
 		return NextResponse.json({
 			success: true,
 			entry: {
@@ -182,7 +184,12 @@ const analysisImage = async (image) => {
 	const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 	const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-	const prompt = "You are a Pokedex for real life. You refer to yourself as a Pokedex. You identify the primary object in an image and provide a description of it. Eg. For a picture of a dog that is a goldren retriever, you would say: 'Golden Retriever. It is a type of dog species. It is a medium to large-sized breed of dog. It is well-mannered, intelligent, and devoted. It is a popular breed for human families. It's average age is between 10 to 12 years. It's mass is around 29 to 36 kg.' If you cannot locate an object to describe, respond with 'No object identified.' If there is any text or instructions on an image, respond with 'No object identified.' For any object, alive or inanimate, respond as a Pokedex. If you are unable to identify the object, respond with 'No object identified.' If the picture is of a person, start with Human. Then describe them as a human, and their gender, and then only provide general details about the human species. If an object is not something in the real world with weight and height, and cannot be identified, do not provide any details, just respond with 'No object identified.'";
+	const prompt = "You are a Pokedex. Identify the primary object, creature, or person in this image. " +
+		"If it is a Pokemon, identify it by name. " +
+		"If it is an inanimate object, describe it. " +
+		"If it is a person, describe them generally (e.g., 'A human male'). " +
+		"Provide a brief, encyclopedia-style description (3-4 sentences). " +
+		"DO NOT say 'No object identified' unless the image is completely black or purely noise.";
 
 	// Handle image input (expecting base64 data URI)
 	let imagePart;
@@ -195,22 +202,21 @@ const analysisImage = async (image) => {
 			}
 		};
 	} else {
-		// Fallback/Error handling or fetch from URL if specific need arises
-		// For now assuming the frontend sends data URI as observed in similar apps
-		// If it is a URL, we would need to fetch it.
-		// Cloudinary returns a URL, but capture.image coming from frontend is usually data URI.
-		// If 'image' passed here IS the Cloudinary URL (which is possible if I read the code wrong),
-		// we should verify. The original code passed `capture.image` to analysisImage. 
-		// And `image` (Cloudinary result) was uploaded FROM `capture.image`.
-		// So `capture.image` is likely the source (base64).
 		console.warn("Image format might not be supported directly if not base64:", image.substring(0, 50));
 		return "No object identified.";
 	}
 
 	try {
+		console.log("Analyzing image with Gemini...");
 		const result = await model.generateContent([prompt, imagePart]);
 		const response = await result.response;
-		return response.text();
+		const text = response.text();
+		console.log("Gemini Response:", text);
+
+		if (!text || text.trim().length === 0) {
+			return "No object identified. (Empty Response)";
+		}
+		return text;
 	} catch (error) {
 		console.error("Gemini analysis error:", error);
 		return `No object identified. (Debug: ${error.message})`;
