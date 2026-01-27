@@ -41,7 +41,7 @@ export async function POST(req) {
 				defense: 0,
 				speed: 0,
 				type: "Unknown",
-				description: "No object identified.",
+				description: imageDescription, // FIXED: Now confirms exact error
 				voiceJobToken: "/no-object.wav",
 			}
 		}, {
@@ -79,10 +79,9 @@ const generateEntry = async (imageDescription) => {
 
 	const result = await model.generateContent(prompt);
 	const text = result.response.text();
-	// Add this new line:
-	const cleanedText = text.replace(/```json|```/g, '').trim(); 
-	// And update this line to use cleanedText:
-	let entry = JSON.parse(cleanedText); 
+	// Gemini Pro often wraps JSON in markdown code blocks, strip them:
+	const cleanedText = text.replace(/```json|```/g, '').trim();
+	let entry = JSON.parse(cleanedText);
 	entry.description = imageDescription;
 	entry._id = UUID.v4();
 	return entry
@@ -232,4 +231,3 @@ const getHeaders = () => {
 	headers.append("cookie", `session=${cookie}`);
 	return headers
 }
-
