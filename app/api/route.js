@@ -41,7 +41,7 @@ export async function POST(req) {
 				defense: 0,
 				speed: 0,
 				type: "Unknown",
-				description: imageDescription, // FIXED: Now confirms exact error
+				description: imageDescription,
 				voiceJobToken: "/no-object.wav",
 			}
 		}, {
@@ -73,7 +73,7 @@ export async function POST(req) {
 };
 
 const generateEntry = async (imageDescription) => {
-	const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+	const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 	const prompt = `You are a Pokedex designed to output JSON. Given a description of an object, you should output a JSON object with the following fields: object, species, approximateWeight, approximateHeight, weight, height, hp, attack, defense, speed, and type. Humans for example would have base health of 100. Another example, if the object is a Golden Retriever, you should output: {object: 'Golden Retriever', species: 'Dog', approximateWeight: '10-20 kg', approximateHeight: '50-60 cm', weight: 15, height:55, hp: 50, attack: 40, defense: 40, speed: 19, type: 'normal'}. Another example for a  {object: 'Magpie', species: 'Bird', approximateWeight: '130 - 270 g', approximateHeight: '37-43 cm', weight: 0.2, height:40, hp: 25, attack: 20, defense: 10, speed: 32, type: 'Flying'} If you are given an object that is not a living creature, plant or lifeform, such as a coffee cup, output the same fields but with type: 'Inanimate'. If you are given a description of a person or human, output species: 'Human' and name: 'Person' and type: 'Normal'. If you are not sure what the attributes are for things like height or speed, it is okay to guess. Some examples, plants can have the type as Grass, with the species being Plant. Fish would have the type of Water with the species being Fish. Try to keep the types to the options avaiable in pokemon. Description: ${imageDescription}`;
 
@@ -181,7 +181,7 @@ const getEmbedding = async (text) => {
 
 const analysisImage = async (image) => {
 	const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-	const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+	const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 	const prompt = "You are a Pokedex. Identify the primary object, creature, or person in this image. " +
 		"If it is a Pokemon, identify it by name. " +
@@ -231,3 +231,4 @@ const getHeaders = () => {
 	headers.append("cookie", `session=${cookie}`);
 	return headers
 }
+
