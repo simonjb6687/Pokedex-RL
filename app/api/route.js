@@ -8,6 +8,7 @@ import db from '@/app/db'
 import { UUID, ObjectId } from '@datastax/astra-db-ts';
 import { v2 as cloudinary } from 'cloudinary';
 import { getToken } from 'next-auth/jwt';
+import FakeYou from 'fakeyou.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -49,7 +50,7 @@ export async function POST(req) {
 		});
 	}
 	// Parallelize slow operations to prevent Vercel 10s timeout
-	const [inference_job_token, entry, vector, no] = await Promise.all([
+	const [voiceResult, entry, vector, no] = await Promise.all([
 		generateVoice(imageDescription),
 		generateEntry(imageDescription),
 		getEmbedding(imageDescription),
@@ -57,8 +58,11 @@ export async function POST(req) {
 	]);
 
 	entry.$vector = vector;
-	if (inference_job_token) {
-		entry.inference_job_token = inference_job_token;
+	if (voiceResult && voiceResult.token) {
+		entry.inference_job_token = voiceResult.token;
+	}
+	if (voiceResult && voiceResult.url) {
+		entry.voiceUrl = voiceResult.url;
 	}
 	entry.image = image.secure_url
 	entry.no = no;
@@ -158,22 +162,35 @@ const addToDatabase = async (req, entry) => {
 }
 
 const generateVoice = async (description) => {
+	const fy = new FakeYou.Client({
+		usernameOrEmail: process.env.FAKEYOU_EMAIL,
+		password: process.env.FAKEYOU_PASSWORD
+	});
 
-	let headers = getHeaders();
-	const voice = await fetch('https://api.fakeyou.com/tts/inference', {
-		method: 'POST',
-		headers,
-		body: JSON.stringify({
-			tts_model_token: 'weight_dh8zry5bgkfm0z6nv3anqa9y5',
-			uuid_idempotency_token: uuidv4(),
-			inference_text: description, //description
-		})
-	})
-		.then(res => res.json())
-		.catch(err => {
-			console.log(err)
-		});
-	return voice.inference_job_token
+	try {
+		await fy.start();
+
+		const modelToken = 'weight_dh8zry5bgkfm0z6nv3anqa9y5';
+
+		const result = await Promise.race([
+			fy.makeTTS(modelToken, description),
+			new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 4500))
+		]);
+
+		console.log("FakeYou Result:", JSON.stringify(result));
+
+		let token = result.jobToken || result.inference_job_token || result.inferenceJobToken;
+		let url = null;
+
+		if (result && result.audioPath) {
+			url = `https://storage.googleapis.com/vocodes-public${result.audioPath}`;
+		}
+
+		return { token, url };
+	} catch (err) {
+		console.log("Voice generation failed:", err);
+		return null;
+	}
 }
 
 const getEmbedding = async (text) => {
@@ -225,13 +242,5 @@ const analysisImage = async (image) => {
 	}
 }
 
-const getHeaders = () => {
-	const headers = new Headers();
-	const cookie = process.env.FAKEYOU_COOKIE;
 
-	headers.append("content-type", "application/json");
-	headers.append("credentials", "include");
-	headers.append("cookie", `session=${cookie}`);
-	return headers
-}
 
