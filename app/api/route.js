@@ -79,7 +79,10 @@ const generateEntry = async (imageDescription) => {
 
 	const result = await model.generateContent(prompt);
 	const text = result.response.text();
-	let entry = JSON.parse(text);
+	// Add this new line:
+	const cleanedText = text.replace(/```json|```/g, '').trim(); 
+	// And update this line to use cleanedText:
+	let entry = JSON.parse(cleanedText); 
 	entry.description = imageDescription;
 	entry._id = UUID.v4();
 	return entry
