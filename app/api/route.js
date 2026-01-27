@@ -48,10 +48,13 @@ export async function POST(req) {
 			status: 200
 		});
 	}
-	let inference_job_token = await generateVoice(imageDescription)
-	let entry = await generateEntry(imageDescription);
-	let vector = await getEmbedding(imageDescription);
-	let no = await getNoObject();
+	// Parallelize slow operations to prevent Vercel 10s timeout
+	const [inference_job_token, entry, vector, no] = await Promise.all([
+		generateVoice(imageDescription),
+		generateEntry(imageDescription),
+		getEmbedding(imageDescription),
+		getNoObject()
+	]);
 
 	entry.$vector = vector;
 	if (inference_job_token) {
