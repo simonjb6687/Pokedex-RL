@@ -1,4 +1,4 @@
-Due to AI pricing requirements, I am unable to host this project indefinitely. You can clone the project here on github. Preview [full demo video here](https://youtu.be/NBmLFMN0fdw).
+ Due to AI pricing requirements, I am unable to host this project indefinitely. You can clone the project here on github. Preview [full demo video here](https://youtu.be/NBmLFMN0fdw).
 
 ![Pokedex for Real Life](preview.gif)
 
