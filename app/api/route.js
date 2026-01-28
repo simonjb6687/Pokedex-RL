@@ -161,23 +161,31 @@ const addToDatabase = async (req, entry) => {
 }
 
 const generateVoice = async (description) => {
+	console.log("--- generateVoice: START ---");
 	const FakeYou = require('fakeyou.js');
 	const fy = new FakeYou.Client({
 		usernameOrEmail: process.env.FAKEYOU_EMAIL,
 		password: process.env.FAKEYOU_PASSWORD
 	});
 
-	try {
+	const voiceTask = async () => {
+		console.log("--- generateVoice: Logging in... ---");
 		await fy.start();
+		console.log("--- generateVoice: Login Success. Requesting TTS... ---");
 
 		const modelToken = 'weight_dh8zry5bgkfm0z6nv3anqa9y5';
+		const result = await fy.makeTTS(modelToken, description);
+		return result;
+	};
 
+	try {
+		// Race the ENTRIE task (Login + TTS) against the timer
 		const result = await Promise.race([
-			fy.makeTTS(modelToken, description),
+			voiceTask(),
 			new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 4500))
 		]);
 
-		console.log("FakeYou Result:", JSON.stringify(result));
+		console.log("--- generateVoice: SUCCESS ---", JSON.stringify(result));
 
 		let token = result.jobToken || result.inference_job_token || result.inferenceJobToken;
 		let url = null;
@@ -188,8 +196,8 @@ const generateVoice = async (description) => {
 
 		return { token, url };
 	} catch (err) {
-		console.log("Voice generation failed:", err);
-		return null;
+		console.error("--- generateVoice: FAILED/TIMED OUT ---", err.message);
+		return null; // Return null so the app proceeds without voice
 	}
 }
 
