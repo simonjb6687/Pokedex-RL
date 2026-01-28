@@ -8,7 +8,6 @@ import db from '@/app/db'
 import { UUID, ObjectId } from '@datastax/astra-db-ts';
 import { v2 as cloudinary } from 'cloudinary';
 import { getToken } from 'next-auth/jwt';
-import FakeYou from 'fakeyou.js';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -162,6 +161,7 @@ const addToDatabase = async (req, entry) => {
 }
 
 const generateVoice = async (description) => {
+	const FakeYou = require('fakeyou.js');
 	const fy = new FakeYou.Client({
 		usernameOrEmail: process.env.FAKEYOU_EMAIL,
 		password: process.env.FAKEYOU_PASSWORD
