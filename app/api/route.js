@@ -21,8 +21,11 @@ export async function POST(req) {
 
 	let { capture } = await req.json();
 
-	let image = await cloudinary.uploader.upload(capture.image);
-	let imageDescription = await analysisImage(capture.image);
+	// Parallelize initial image tasks (Upload + Analysis) to save ~2-3 seconds
+	const [image, imageDescription] = await Promise.all([
+		cloudinary.uploader.upload(capture.image),
+		analysisImage(capture.image)
+	]);
 
 	// Relaxed check to allow for debug messages or slight variations
 	if (imageDescription.includes("No object identified.")) {
