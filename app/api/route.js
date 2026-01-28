@@ -253,3 +253,14 @@ const analysisImage = async (image) => {
 		const result = await model.generateContent([prompt, imagePart]);
 		const response = await result.response;
 		const text = response.text();
+		console.log("Gemini Response:", text);
+
+		if (!text || text.trim().length === 0) {
+			return "No object identified. (Empty Response)";
+		}
+		return text;
+	} catch (error) {
+		console.error("Gemini analysis error:", error);
+		return `No object identified. (Debug: ${error.message})`;
+	}
+}
