@@ -212,6 +212,7 @@ const getEmbedding = async (text) => {
 
 const analysisImage = async (image) => {
 	const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+	// We use 2.5 flash as we saw it was available
 	const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 	const prompt = "You are a Pokedex. Identify the primary object, creature, or person in this image. " +
@@ -252,6 +253,3 @@ const analysisImage = async (image) => {
 		return `No object identified. (Debug: ${error.message})`;
 	}
 }
-
-
-
