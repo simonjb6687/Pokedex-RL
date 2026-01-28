@@ -18,18 +18,22 @@ cloudinary.config({
 });
 
 export async function POST(req) {
+	console.time("Total Request Time");
 
 	let { capture } = await req.json();
 
 	// Parallelize initial image tasks (Upload + Analysis) to save ~2-3 seconds
+	console.time("Image Upload & Analysis");
 	const [image, imageDescription] = await Promise.all([
 		cloudinary.uploader.upload(capture.image),
 		analysisImage(capture.image)
 	]);
+	console.timeEnd("Image Upload & Analysis");
 
 	// Relaxed check to allow for debug messages or slight variations
 	if (imageDescription.includes("No object identified.")) {
 		console.log("No object identified fallback triggered. Description:", imageDescription);
+		console.timeEnd("Total Request Time");
 		return NextResponse.json({
 			success: true,
 			entry: {
@@ -51,6 +55,9 @@ export async function POST(req) {
 			status: 200
 		});
 	}
+
+	console.log(`Starting Parallel Tasks...`);
+	console.time("Parallel Tasks (Voice+Entry+Vector)");
 	// Parallelize slow operations to prevent Vercel 10s timeout
 	const [voiceResult, entry, vector, no] = await Promise.all([
 		generateVoice(imageDescription),
@@ -58,6 +65,7 @@ export async function POST(req) {
 		getEmbedding(imageDescription),
 		getNoObject()
 	]);
+	console.timeEnd("Parallel Tasks (Voice+Entry+Vector)");
 
 	entry.$vector = vector;
 	if (voiceResult && voiceResult.token) {
@@ -69,8 +77,11 @@ export async function POST(req) {
 	entry.image = image.secure_url
 	entry.no = no;
 
+	console.time("DB Insert");
 	let poke = await addToDatabase(req, entry);
+	console.timeEnd("DB Insert");
 
+	console.timeEnd("Total Request Time");
 	return NextResponse.json({
 		success: true,
 		entry,
@@ -242,14 +253,3 @@ const analysisImage = async (image) => {
 		const result = await model.generateContent([prompt, imagePart]);
 		const response = await result.response;
 		const text = response.text();
-		console.log("Gemini Response:", text);
-
-		if (!text || text.trim().length === 0) {
-			return "No object identified. (Empty Response)";
-		}
-		return text;
-	} catch (error) {
-		console.error("Gemini analysis error:", error);
-		return `No object identified. (Debug: ${error.message})`;
-	}
-}
