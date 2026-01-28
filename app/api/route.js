@@ -22,15 +22,17 @@ export async function POST(req) {
 
 	let { capture } = await req.json();
 
-	// Parallelize initial image tasks (Upload + Analysis) to save ~2-3 seconds
-	console.time("Image Upload & Analysis");
-	const [image, imageDescription] = await Promise.all([
-		cloudinary.uploader.upload(capture.image),
-		analysisImage(capture.image)
-	]);
-	console.timeEnd("Image Upload & Analysis");
+	// 1. Kick off Cloudinary Upload (Slowest part, don't await yet!)
+	console.time("Image Upload Start");
+	const imageUploadPromise = cloudinary.uploader.upload(capture.image);
+	console.timeEnd("Image Upload Start");
 
-	// Relaxed check to allow for debug messages or slight variations
+	// 2. Perform Image Analysis (Blocking for Voice/Entry)
+	console.time("Image Analysis");
+	const imageDescription = await analysisImage(capture.image);
+	console.timeEnd("Image Analysis");
+
+	// Relaxed check to allow for debug messages
 	if (imageDescription.includes("No object identified.")) {
 		console.log("No object identified fallback triggered. Description:", imageDescription);
 		console.timeEnd("Total Request Time");
@@ -51,19 +53,24 @@ export async function POST(req) {
 				description: `(v2.5-FLASH CHECK) ${imageDescription}`,
 				voiceJobToken: "/no-object.wav",
 			}
-		}, {
-			status: 200
-		});
+		}, { status: 200 });
 	}
 
-	console.log(`Starting Parallel Tasks...`);
+	console.log(`Starting Parallel AI Tasks...`);
 	console.time("Parallel Tasks (Voice+Entry+Vector)");
-	// Parallelize slow operations to prevent Vercel 10s timeout
-	const [voiceResult, entry, vector, no] = await Promise.all([
+
+	// 3. Start all dependent AI tasks
+	const aiTasksPromise = Promise.all([
 		generateVoice(imageDescription),
 		generateEntry(imageDescription),
 		getEmbedding(imageDescription),
 		getNoObject()
+	]);
+
+	// 4. Wait for EVERYTHING to finish (Cloudinary + AI)
+	const [image, [voiceResult, entry, vector, no]] = await Promise.all([
+		imageUploadPromise,
+		aiTasksPromise
 	]);
 	console.timeEnd("Parallel Tasks (Voice+Entry+Vector)");
 
@@ -85,10 +92,7 @@ export async function POST(req) {
 	return NextResponse.json({
 		success: true,
 		entry,
-		// entry: EXAMPLE,
-	}, {
-		status: 200
-	});
+	}, { status: 200 });
 
 };
 
