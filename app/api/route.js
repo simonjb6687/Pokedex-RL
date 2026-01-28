@@ -175,42 +175,63 @@ const addToDatabase = async (req, entry) => {
 }
 
 const generateVoice = async (description) => {
-	console.log("--- generateVoice: START ---");
-	const FakeYou = require('fakeyou.js');
-	const fy = new FakeYou.Client({
-		usernameOrEmail: process.env.FAKEYOU_EMAIL,
-		password: process.env.FAKEYOU_PASSWORD
-	});
-
-	const voiceTask = async () => {
-		console.log("--- generateVoice: Logging in... ---");
-		await fy.start();
-		console.log("--- generateVoice: Login Success. Requesting TTS... ---");
-
-		const modelToken = 'weight_dh8zry5bgkfm0z6nv3anqa9y5';
-		const result = await fy.makeTTS(modelToken, description);
-		return result;
-	};
+	console.log("--- generateVoice: START (Manual Native Fetch) ---");
 
 	try {
-		// Race the ENTRIE task (Login + TTS) against the timer
-		const result = await Promise.race([
-			voiceTask(),
-			new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 4500))
-		]);
+		// 1. Login to get Session Cookie
+		console.log("1. Logging in...");
+		const loginResp = await fetch('https://api.fakeyou.com/login', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				username_or_email: process.env.FAKEYOU_EMAIL,
+				password: process.env.FAKEYOU_PASSWORD
+			})
+		});
 
-		console.log("--- generateVoice: SUCCESS ---", JSON.stringify(result));
-
-		let token = result.jobToken || result.inference_job_token || result.inferenceJobToken;
-		let url = null;
-
-		if (result && result.audioPath) {
-			url = `https://storage.googleapis.com/vocodes-public${result.audioPath}`;
+		if (!loginResp.ok) {
+			throw new Error(`Login failed with status: ${loginResp.status}`);
 		}
 
-		return { token, url };
+		// Extract the 'set-cookie' header. 
+		// Note: In Next.js/Node fetch, headers.get('set-cookie') might return all cookies joined or just one.
+		// We need the 'session' cookie specifically.
+		const cookieString = loginResp.headers.get('set-cookie');
+		console.log("Login Success. Cookie obtained."); // Don't log full cookie for security
+
+		if (!cookieString) {
+			console.warn("Warning: No set-cookie header found. Trying to proceed without it (might fail).");
+		}
+
+		// 2. Generate Voice (Inference)
+		console.log("2. Requesting TTS...");
+		const modelToken = 'weight_dh8zry5bgkfm0z6nv3anqa9y5';
+
+		const inferenceResp = await fetch('https://api.fakeyou.com/tts/inference', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Cookie': cookieString || ''
+			},
+			body: JSON.stringify({
+				tts_model_token: modelToken,
+				uuid_idempotency_token: uuidv4(),
+				inference_text: description
+			})
+		});
+
+		const inferenceData = await inferenceResp.json();
+
+		if (!inferenceData.success) {
+			console.error("Inference API reported failure:", inferenceData);
+			return null;
+		}
+
+		console.log("--- generateVoice: SUCCESS ---", inferenceData.inference_job_token);
+		return inferenceData.inference_job_token;
+
 	} catch (err) {
-		console.error("--- generateVoice: FAILED/TIMED OUT ---", err.message);
+		console.error("--- generateVoice: FAILED ---", err.message);
 		return null; // Return null so the app proceeds without voice
 	}
 }
@@ -243,24 +264,3 @@ const analysisImage = async (image) => {
 				mimeType: mimeType.replace("data:", "")
 			}
 		};
-	} else {
-		console.warn("Image format might not be supported directly if not base64:", image.substring(0, 50));
-		return "No object identified.";
-	}
-
-	try {
-		console.log("Analyzing image with Gemini...");
-		const result = await model.generateContent([prompt, imagePart]);
-		const response = await result.response;
-		const text = response.text();
-		console.log("Gemini Response:", text);
-
-		if (!text || text.trim().length === 0) {
-			return "No object identified. (Empty Response)";
-		}
-		return text;
-	} catch (error) {
-		console.error("Gemini analysis error:", error);
-		return `No object identified. (Debug: ${error.message})`;
-	}
-}
