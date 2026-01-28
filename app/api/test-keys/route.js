@@ -42,3 +42,40 @@ export async function GET(req) {
         const data = await loginRes.json();
 
         if (data.success) {
+            results.fakeyou = { status: "success", message: "Login Successful" };
+        } else {
+            results.fakeyou = { status: "error", message: "Login Failed", details: data };
+        }
+
+    } catch (e) {
+        console.error(e);
+        results.fakeyou = { status: "error", message: e.message };
+    }
+
+    // 3. Test Cloudinary
+    try {
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_NAME,
+            api_key: process.env.CLOUDINARY_KEY,
+            api_secret: process.env.CLOUDINARY_SECRET
+        });
+        // Check usage as a lightweight ping
+        const usage = await cloudinary.api.usage();
+        results.cloudinary = { status: "success", message: "Connected", plan: usage.plan };
+    } catch (e) {
+        console.error(e);
+        results.cloudinary = { status: "error", message: e.message };
+    }
+
+    // 4. Test Astra DB
+    try {
+        const collection = db.collection('pokedex');
+        const count = await collection.countDocuments({}, { limit: 1 });
+        results.database = { status: "success", message: "Connected", sampleCount: count };
+    } catch (e) {
+        console.error(e);
+        results.database = { status: "error", message: e.message };
+    }
+
+    return NextResponse.json(results, { status: 200 });
+}
