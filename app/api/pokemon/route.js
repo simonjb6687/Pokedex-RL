@@ -1,47 +1,21 @@
 import { NextResponse } from "next/server";
-import { DataAPIClient } from "@datastax/astra-db-ts";
 import { getToken } from 'next-auth/jwt';
-import db from "@/app/db";
+import getDb from "@/app/db";
 
 export async function GET(req) {
-
+	const db = await getDb();
+	if (!db) {
+		return NextResponse.json({ success: true, pokemon: [] }, { status: 200 });
+	}
 	const collection = db.collection('pokedex');
 	const users = db.collection('users');
-	const token = await getToken({ req });
-	
-
-	if(token){
-		const user = await users.findOne({
-			providerAccountId: token.sub,
-		});
-		if(user){
-			
-			const pokemon = await collection.find({
-				user_id: user._id
-			}, { 
-				limit: 999,
-				sort : { no: 1 },
-				// dont select vector field
-				projection: { 
-					$vector: 0
-				}
-			}).toArray();
-			return NextResponse.json({
-				success: true,
-				pokemon
-			}, {
-				status: 200
-			});
+	const tk = await getToken({ req });
+	if (tk) {
+		const user = await users.findOne({ providerAccountId: tk.sub });
+		if (user) {
+			const pokemon = await collection.find({ user_id: user._id }).sort({ no: 1 }).limit(999).project({ embedding: 0 }).toArray();
+			return NextResponse.json({ success: true, pokemon }, { status: 200 });
 		}
 	}
-
-	
-
-	return NextResponse.json({
-		success: true,
-		pokemon: []
-	}, {
-		status: 200
-	});
-	
+	return NextResponse.json({ success: true, pokemon: [] }, { status: 200 });
 };
