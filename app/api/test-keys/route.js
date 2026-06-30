@@ -15,7 +15,7 @@ export async function GET(req) {
 
     try {
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContent("Test connection");
         const text = result.response.text();
         results.gemini = { status: "success", message: "Connected", responseStart: text.substring(0, 10) };
