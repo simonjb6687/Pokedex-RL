@@ -106,9 +106,13 @@ const Pokedex = observer(() => {
 			</button>
 			</div>}
 
-			<div className="description">
-				{store.capture.description}
-			</div>
+			<div className="description"
+				dangerouslySetInnerHTML={{
+					__html: (store.capture.description || '')
+						.replace(/Pokemon/g, 'Pokémon')
+						.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+				}}
+			/>
 
 
 
