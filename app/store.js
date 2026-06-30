@@ -68,14 +68,14 @@ class appStore {
 		const { user } = await response.json();
 		console.log(`getUser`,user)
 		if (user) {
-			this.profile = { ...user }
+			this.profile = { ...user }	
 		}
 		this.getPokemon()
 	}
 
 
 	pokemon = []
-
+	
 	keyword = ""
 	get filteredPokemon(){
 		return this.pokemon.filter(poke => {
@@ -122,7 +122,7 @@ class appStore {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({
+			body: JSON.stringify({ 
 				_id
 			}),
 		});
@@ -153,14 +153,14 @@ class appStore {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({
+			body: JSON.stringify({ 
 				capture: this.capture
 			 }),
 		});
 		const data = await response.json();
-		this.capture = {
-			...data.entry,
-			image: this.capture.image
+		this.capture = { 
+			...data.entry, 
+			image: this.capture.image 
 		}
 		if(this.capture.description == "No object identified." || this.capture.description == "No object detected."){
 		} else {
@@ -168,10 +168,12 @@ class appStore {
 		}
 		this.router.push('/pokedex/preview')
 		store.picture.buttonPressed = false
-        store.picture.loadingContent = false
-	}
+		store.picture.loadingContent = false
+	} 
 
 	pollingVoice;
+	voicePollCount = 0;
+	useBrowserVoice = false;
 
 	fetchVoice = async () => {
 		if(!store.capture.description){
@@ -179,6 +181,11 @@ class appStore {
 		}
 		if(store.capture.voiceUrl){
 			return false
+		}
+		this.voicePollCount++;
+		if(this.voicePollCount > 6){
+			this.useBrowserVoice = true;
+			return false;
 		}
 		const bodyData = {
 			capture: {
@@ -197,14 +204,12 @@ class appStore {
 			body: JSON.stringify(bodyData),
 		});
 		const data = await response.json();
-		this.capture = {
-			...this.capture,
-			...data.capture
+		this.capture = { 
+			...this.capture, 
+			...data.capture 
 		}
-		const index = this.pokemon.findIndex(poke => String(poke._id) === String(this.capture._id))
-		if (index >= 0) {
-			this.pokemon[index] = { ...this.capture }
-		}
+		const index = this.pokemon.findIndex(poke => poke._id && this.capture._id && poke._id.$uuid == this.capture._id.$uuid)
+		if(index >= 0) this.pokemon[index] = { ...this.capture }
 		if(this.capture.voiceStatus != "complete_success"){
 			this.pollingVoice = setTimeout(this.fetchVoice, 5000);
 		}
@@ -212,9 +217,11 @@ class appStore {
 
 	viewPoke = async (poke) => {
 		this.capture = { ...poke }
+		this.voicePollCount = 0;
+		this.useBrowserVoice = false;
 		this.router.push('/pokedex/preview/');
 	}
-
+	
 }
 
 export default appStore
