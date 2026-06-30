@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
 import getDb from '@/app/db';
 
+export const dynamic = 'force-dynamic';
+
 async function getFakeYouSession() {
 	try {
 		const loginResp = await fetch('https://api.fakeyou.com/login', {
@@ -96,6 +98,7 @@ const fetchVoice = async (inference_job_token, cookieString) => {
 			method: 'GET',
 			headers,
 		}).then(res => res.json());
+				console.log("FakeYou job raw:", JSON.stringify(voice).substring(0, 500));
 		return voice.state;
 	} catch (err) {
 		console.error("fetchVoice error:", err);
