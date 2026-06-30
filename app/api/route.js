@@ -102,7 +102,7 @@ export async function POST(req) {
 
 const generateEntry = async (imageDescription) => {
 	const model = genAI.getGenerativeModel({
-		model: "gemini-2.0-flash",
+		model: "gemini-2.5-flash",
 		generationConfig: {
 			responseMimeType: "application/json",
 		},
@@ -210,7 +210,7 @@ const getEmbedding = async (text) => {
 }
 
 const analysisImage = async (image) => {
-	const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+	const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 	const prompt = "You are a Pokedex. Identify the primary object, creature, or person in this image. If it is a Pokemon, identify it by name. If it is an inanimate object, describe it. If it is a person, describe them generally. Provide a brief, encyclopedia-style description (3-4 sentences). DO NOT say 'No object identified' unless the image is completely black or purely noise.";
 
 	let imagePart;
