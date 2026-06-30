@@ -1,6 +1,6 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import db from "@/app/db";
+import getDb from "@/app/db";
 
 const authOptions = {
 	providers: [
@@ -16,36 +16,39 @@ const authOptions = {
 			  }
 		})
 	],
-	
+
 	callbacks: {
-		async signIn({ user, account  }) {
+		async signIn({ user, account }) {
 			const { email, name, image, id, provider } = user;
-			const collection = db.collection('users');
-			const findUser = await collection.findOne({ providerAccountId: id });
-			if (findUser) {
-				return true;
-			} else {
-				const createUserInDb = await collection.insertOne({
-					email, 
-					name, 
-					avatar: image, 
-					providerAccountId: id, 
+			try {
+				const db = await getDb();
+				if (!db) return true;
+				const collection = db.collection('users');
+				const findUser = await collection.findOne({ providerAccountId: id });
+				if (findUser) {
+					return true;
+				}
+				await collection.insertOne({
+					email,
+					name,
+					avatar: image,
+					providerAccountId: id,
 					provider,
 					lastUpdated: Date.now(),
 					pokedexEntries: 0,
 				});
+			} catch (e) {
+				console.error("signIn DB error:", e.message);
 			}
 			return true;
 		},
 		async jwt({ token, account }) {
-			// Persist the OAuth access_token to the token right after signin
 			if (account) {
 			  token.accessToken = account.access_token
 			}
 			return token
 		},
 		async session({ session, token, user }) {
-			// Send properties to the client, like an access_token from a provider.
 			session.accessToken = token.accessToken
 			return session
 		},
@@ -53,4 +56,4 @@ const authOptions = {
 }
 const handler = NextAuth(authOptions)
 
-export { handler as GET, handler as POST, authOptions}
+export { handler as GET, handler as POST, authOptions }
