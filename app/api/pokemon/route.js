@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getToken } from 'next-auth/jwt';
 import getDb from "@/app/db";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req) {
 	const db = await getDb();
 	if (!db) {
