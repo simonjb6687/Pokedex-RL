@@ -30,12 +30,14 @@ const speakText = (text) => {
 	if (typeof window === 'undefined' || !window.speechSynthesis) return;
 	window.speechSynthesis.cancel();
 	const utterance = new SpeechSynthesisUtterance(text);
-	utterance.pitch = 0.8;
-	utterance.rate = 0.9;
+	utterance.pitch = 0.1;
+	utterance.rate = 0.8;
 	utterance.volume = 1;
 	const voices = window.speechSynthesis.getVoices();
 	const preferred = voices.find(v =>
-		v.name.includes('Daniel') ||
+		v.name.includes('Zarvox') ||
+        v.name.includes('Trinoids') ||
+        v.name.includes('Cellos') ||
 		v.name.includes('Google UK English Male') ||
 		v.name.includes('Alex')
 	);
@@ -46,6 +48,7 @@ const speakText = (text) => {
 const Pokedex = observer(() => {
   const store = useContext(StoreContext)
   const initialized = useRef(false)
+    const audioRef = useRef(null)
 
   useEffect(() => {
 	if (!initialized.current) {
@@ -86,10 +89,15 @@ const Pokedex = observer(() => {
 
 
 			{store.capture.voiceUrl ?
-			<audio
-			className="mb-2"
-			src={store.capture.voiceUrl} controls
-			/> : store.useBrowserVoice ?
+			<div>
+				<audio ref={audioRef} src={store.capture.voiceUrl} autoPlay />
+				<button
+					onClick={() => { if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play(); } }}
+					className="inline-flex items-center px-4 py-2 leading-6 text-sm shadow rounded-full text-white bg-red-500 hover:bg-red-600 transition ease-in-out duration-150 mb-2"
+				>
+					Replay Pokedex Voice
+				</button>
+			</div> : store.useBrowserVoice ?
 			<button
 				onClick={() => speakText(store.capture.description)}
 				className="inline-flex items-center px-4 py-2 leading-6 text-sm shadow rounded-full text-white bg-red-500 hover:bg-red-600 transition ease-in-out duration-150 mb-2"
@@ -109,6 +117,7 @@ const Pokedex = observer(() => {
 			<div className="description"
 				dangerouslySetInnerHTML={{
 					__html: (store.capture.description || '')
+						.replace(/\*\*Pok[eé]mon:\s*.+?\*\*\s*/i, '')
 						.replace(/Pokemon/g, 'Pokémon')
 						.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 				}}
