@@ -3,7 +3,6 @@ import { computed, makeAutoObservable, configure } from 'mobx'
 import { useRouter } from 'next/navigation'
 import Resizer from "react-image-file-resizer";
 import { getSession } from "next-auth/react"
-// import requestUserMedia from "./requestUserMedia";
 
 configure({ enforceActions: "never", })
 
@@ -69,14 +68,14 @@ class appStore {
 		const { user } = await response.json();
 		console.log(`getUser`,user)
 		if (user) {
-			this.profile = { ...user }	
+			this.profile = { ...user }
 		}
 		this.getPokemon()
 	}
 
 
 	pokemon = []
-	
+
 	keyword = ""
 	get filteredPokemon(){
 		return this.pokemon.filter(poke => {
@@ -123,7 +122,7 @@ class appStore {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ 
+			body: JSON.stringify({
 				_id
 			}),
 		});
@@ -134,7 +133,6 @@ class appStore {
 	}
 
 	handleCaptureImage = async (file) => {
-		// if file uploaded instead of immediate snapshot
 		this.capture = { ...CAPTURE_SCHEMA }
 		if(file.target){
 			file = file.target.files[0];
@@ -155,34 +153,30 @@ class appStore {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ 
+			body: JSON.stringify({
 				capture: this.capture
 			 }),
 		});
 		const data = await response.json();
-		this.capture = { 
-			...data.entry, 
-			image: this.capture.image 
+		this.capture = {
+			...data.entry,
+			image: this.capture.image
 		}
 		if(this.capture.description == "No object identified." || this.capture.description == "No object detected."){
-			// Do not add to pokemon list
 		} else {
 			this.pokemon.push(this.capture)
 		}
 		this.router.push('/pokedex/preview')
 		store.picture.buttonPressed = false
         store.picture.loadingContent = false
-		// this.pollFetchVoice();
-	} 
+	}
 
 	pollingVoice;
 
 	fetchVoice = async () => {
-		// If no description, why bother?
 		if(!store.capture.description){
 			return false
 		}
-		// If voiceUrl already exists, no point to catch it.
 		if(store.capture.voiceUrl){
 			return false
 		}
@@ -194,7 +188,6 @@ class appStore {
 				voiceUrl: store.capture.voiceUrl,
 			}
 		}
-		console.log(`00 send to voice api`, bodyData)
 		const response = await fetch("/api/voice", {
 			method: "POST",
 			headers: {
@@ -204,13 +197,14 @@ class appStore {
 			body: JSON.stringify(bodyData),
 		});
 		const data = await response.json();
-		this.capture = { 
-			...this.capture, 
-			...data.capture 
+		this.capture = {
+			...this.capture,
+			...data.capture
 		}
-		const index = this.pokemon.findIndex(poke => poke._id.$uuid == this.capture._id.$uuid)
-		this.pokemon[index] = { ...this.capture }
-		// wait about 5 seconds, then run this function again if the voiceStatus is not "complete_success". 
+		const index = this.pokemon.findIndex(poke => String(poke._id) === String(this.capture._id))
+		if (index >= 0) {
+			this.pokemon[index] = { ...this.capture }
+		}
 		if(this.capture.voiceStatus != "complete_success"){
 			this.pollingVoice = setTimeout(this.fetchVoice, 5000);
 		}
@@ -220,7 +214,7 @@ class appStore {
 		this.capture = { ...poke }
 		this.router.push('/pokedex/preview/');
 	}
-	
+
 }
 
 export default appStore
