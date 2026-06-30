@@ -1,5 +1,22 @@
-import { DataAPIClient } from '@datastax/astra-db-ts';
-const client = new DataAPIClient(process.env.ASTRA_DB_APPLICATION_TOKEN);
-const db = client.db(process.env.ASTRA_DB_API_ENDPOINT);
+import { MongoClient } from 'mongodb';
 
-export default db;
+const uri = process.env.MONGODB_URI;
+
+let clientPromise;
+
+if (uri) {
+    if (process.env.NODE_ENV === 'development') {
+          if (!global._mongoClientPromise) {
+                  global._mongoClientPromise = new MongoClient(uri).connect();
+          }
+          clientPromise = global._mongoClientPromise;
+    } else {
+          clientPromise = new MongoClient(uri).connect();
+    }
+}
+
+export default async function getDb() {
+    if (!clientPromise) return null;
+    const client = await clientPromise;
+    return client.db('pokedex_rl');
+}
