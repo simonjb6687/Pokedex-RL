@@ -43,8 +43,8 @@ export async function POST(req) {
 				text: capture.description,
 				model_id: 'eleven_flash_v2_5',
 				voice_settings: {
-					stability: 0.75,
-					similarity_boost: 0.75
+					stability: 1.0,
+					similarity_boost: 0.3
 				}
 			})
 		});
