@@ -1,6 +1,6 @@
 "use client";
 import { StoreContext, useContext, observer } from '@/app/Mobx'
-import { useEffect, useRef, } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Chart as ChartJS,
 	RadialLinearScale,
@@ -48,12 +48,16 @@ const speakText = (text) => {
 const Pokedex = observer(() => {
   const store = useContext(StoreContext)
   const initialized = useRef(false)
-    const audioRef = useRef(null)
-
+	const [captured, setCaptured] = useState(false)
+	const [capturedCount, setCapturedCount] = useState(0)
+	const [shiny, setShiny] = useState(false)
+	const [shinyCount, setShinyCount] = useState(0)
+    
   useEffect(() => {
 	if (!initialized.current) {
 		initialized.current = true
-		store.fetchVoice();
+		const cleaned = (store.capture.description || '').replace(/(\*\*)?Pok[e\u00e9]mon:[^\n]*(\*\*)?\s*\n*/i, '').replace(/\*\*/g, '');
+			setTimeout(() => speakText(cleaned), 500);
 	}
   }, []);
 
@@ -88,44 +92,59 @@ const Pokedex = observer(() => {
 
 
 
-			{store.capture.voiceUrl ?
-			<div>
-				<audio ref={audioRef} src={store.capture.voiceUrl} autoPlay />
+			<div className="flex gap-2 mb-2">
 				<button
-					onClick={() => { if (audioRef.current) { audioRef.current.currentTime = 0; audioRef.current.play(); } }}
-					className="inline-flex items-center px-4 py-2 leading-6 text-sm shadow rounded-full text-white bg-red-500 hover:bg-red-600 transition ease-in-out duration-150 mb-2"
+					onClick={() => { const c = (store.capture.description || '').replace(/(\*\*)?Pok[e\u00e9]mon:[^\n]*(\*\*)?\s*\n*/i, '').replace(/\*\*/g, ''); speakText(c); }}
+					className="inline-flex items-center px-4 py-2 leading-6 text-sm shadow rounded-full text-white bg-red-500 hover:bg-red-600 transition ease-in-out duration-150"
 				>
-					Replay Pokedex Voice
+					Replay
 				</button>
-			</div> : store.useBrowserVoice ?
-			<button
-				onClick={() => speakText(store.capture.description)}
-				className="inline-flex items-center px-4 py-2 leading-6 text-sm shadow rounded-full text-white bg-red-500 hover:bg-red-600 transition ease-in-out duration-150 mb-2"
-			>
-				Play Pokedex Voice
-			</button> :
-			<div>
-			<button type="button" className="inline-flex items-center px-4 py-2  leading-6 text-sm shadow rounded-full text-gray-500 bg-gray-200 hover:bg-gray-100 transition ease-in-out duration-150 cursor-not-allowed mb-2" disabled="">
-				<svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-				<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-				<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-				</svg>
-				Processing Audio...
-			</button>
-			</div>}
+				<button
+					onClick={() => window.speechSynthesis.cancel()}
+					className="inline-flex items-center px-4 py-2 leading-6 text-sm shadow rounded-full text-white bg-gray-500 hover:bg-gray-600 transition ease-in-out duration-150"
+				>
+					Mute
+				</button>
+			</div>
 
 			<div className="description"
 				dangerouslySetInnerHTML={{
 					__html: (store.capture.description || '')
-						.replace(/\*\*Pok[eé]mon:\s*.+?\*\*\s*/i, '')
+						.replace(/(\*\*)?Pok[eé]mon:[^\n]*(\*\*)?\s*\n*/i, '')
 						.replace(/Pokemon/g, 'Pokémon')
 						.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+						.replace(/\n\n/g, '<br><br>')
+						.replace(/\n/g, '<br>')
 				}}
 			/>
 
 
 
-		  	<div className="stats divide-y">
+		  	<div className="stats divide-y mb-2">
+				<div className="stat p-2">
+					<div className="stat-icon w-8"><IconSeen /></div>
+					<div className="stat-attr w-24">Seen</div>
+					<div className="stat-value">{store.capture.seen || 1}</div>
+				</div>
+				<div className="stat p-2">
+					<div className="stat-icon w-8"><IconCaptured /></div>
+					<div className="stat-attr w-24">Captured</div>
+					<div className="stat-value flex items-center gap-2">
+						<input type="checkbox" checked={captured} onChange={(e) => setCaptured(e.target.checked)} className="w-4 h-4" />
+						<input type="number" value={capturedCount} onChange={(e) => setCapturedCount(parseInt(e.target.value) || 0)} className="w-12 border rounded px-1 text-center" min="0" />
+					</div>
+				</div>
+				<div className="stat p-2">
+					<div className="stat-icon w-8"><IconShiny /></div>
+					<div className="stat-attr w-24">Shiny</div>
+					<div className="stat-value flex items-center gap-2">
+						<input type="checkbox" checked={shiny} onChange={(e) => setShiny(e.target.checked)} className="w-4 h-4" />
+						<input type="number" value={shinyCount} onChange={(e) => setShinyCount(parseInt(e.target.value) || 0)} className="w-12 border rounded px-1 text-center" min="0" />
+					</div>
+				</div>
+			</div>
+
+			<div className="stats divide-y">
 			  <div className="stat p-2">
 		  			<div className="stat-icon w-8"><IconSpecies /></div>
 					<div className="stat-attr w-24">Species</div>
@@ -230,5 +249,12 @@ const IconWeight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" vi
 const IconHeight = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" ><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>
 
 
+
+
+const IconSeen = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+
+const IconCaptured = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h7"/><path d="M15 12h7"/><circle cx="12" cy="12" r="3"/></svg>
+
+const IconShiny = ({ className }) => <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
 
 export default Pokedex;
