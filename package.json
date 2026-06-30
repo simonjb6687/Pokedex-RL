@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@datastax/astra-db-ts": "^1.0.2",
+    "mongodb": "^6.3.0",
     "@imgly/background-removal": "^1.4.5",
     "@vercel/analytics": "^1.2.2",
     "chart.js": "^4.4.2",
