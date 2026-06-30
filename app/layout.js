@@ -10,8 +10,8 @@ export const viewport = {
 }
 
 export const metadata = {
-  title: "RL Pokedex",
-  description: "Real Life Pokedex",
+  title: "Simon's Pokédex",
+  description: "Simon's Pokédex",
 };
 
 export default function RootLayout({ children }) {
