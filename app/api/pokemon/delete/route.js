@@ -1,27 +1,37 @@
 import { NextResponse } from "next/server";
-import { DataAPIClient } from "@datastax/astra-db-ts";
-
-
-// Initialize the client
-const client = new DataAPIClient(process.env.ASTRA_DB_APPLICATION_TOKEN);
-const db = client.db('https://8ce1a9d9-fb59-4236-9d4c-451485cff59b-us-east-2.apps.astra.datastax.com');
+import { getToken } from 'next-auth/jwt';
+import getDb from "@/app/db";
 
 export async function POST(req) {
+	try {
+		const { _id } = await req.json();
+		const db = await getDb();
+		if (!db || !_id) {
+			return NextResponse.json({ success: false }, { status: 400 });
+		}
 
-	let { _id } = await req.json();
+		const token = await getToken({ req });
+		const users = db.collection('users');
+		const collection = db.collection('pokedex');
 
-	console.log(`_id`, _id)
+		let deleteFilter = { _id };
+		if (token) {
+			const user = await users.findOne({ providerAccountId: token.sub });
+			if (user) {
+				deleteFilter.user_id = user._id;
+				await collection.deleteOne(deleteFilter);
+				if (user.pokedexEntries > 0) {
+					await users.updateOne(
+						{ _id: user._id },
+						{ $set: { pokedexEntries: user.pokedexEntries - 1 } }
+					);
+				}
+			}
+		}
 
-	const collection = db.collection('pokedex');
-	const pokemon = await collection.deleteOne({
-		_id
-	});
-
-	return NextResponse.json({
-		success: true,
-		pokemon
-	}, {
-		status: 200
-	});
-	
-};
+		return NextResponse.json({ success: true }, { status: 200 });
+	} catch (e) {
+		console.error("Delete error:", e);
+		return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+	}
+}
