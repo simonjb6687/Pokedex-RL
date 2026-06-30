@@ -5,7 +5,7 @@ import { v2 as cloudinary } from 'cloudinary';
 export const dynamic = 'force-dynamic';
 
 cloudinary.config({
-	cloud_name: process.env.CLOUDINARY_NAME,
+	cloud_name: process.env.CLOUDINARY_NAME
 	api_key: process.env.CLOUDINARY_KEY,
 	api_secret: process.env.CLOUDINARY_SECRET
 });
@@ -41,7 +41,7 @@ export async function POST(req) {
 			},
 			body: JSON.stringify({
 				text: capture.description,
-				model_id: 'eleven_monolingual_v1',
+				model_id: 'eleven_flash_v2_5',
 				voice_settings: {
 					stability: 0.75,
 					similarity_boost: 0.75
