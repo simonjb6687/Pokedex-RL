@@ -30,7 +30,10 @@ const Page = observer(() => {
     <>
       <Header />
       <div className="login-page">
-          <img src={LoginImage.src} width="320" className="mt-24" />
+          <div className="mt-24" style={{overflow: 'hidden', height: '280px'}}>
+            <img src={LoginImage.src} width="320" />
+          </div>
+          <h1 className="text-2xl font-bold mt-2 text-white">{"Simon's Pok\u00e9dex"}</h1>
           <div>
             <img src={ButtonLogin.src} width="320" className="cursor-pointer" onClick={()=>signIn('google')} />
             <Link href="/camera">
