@@ -30,17 +30,16 @@ const speakText = (text) => {
 	if (typeof window === 'undefined' || !window.speechSynthesis) return;
 	window.speechSynthesis.cancel();
 	const utterance = new SpeechSynthesisUtterance(text);
-	utterance.pitch = 0.1;
-	utterance.rate = 0.8;
+	utterance.pitch = 0.6;
+	utterance.rate = 0.9;
 	utterance.volume = 1;
 	const voices = window.speechSynthesis.getVoices();
 	const preferred = voices.find(v =>
-		v.name.includes('Zarvox') ||
-        v.name.includes('Trinoids') ||
-        v.name.includes('Cellos') ||
+		v.name.includes('Fred') ||
 		v.name.includes('Google UK English Male') ||
-		v.name.includes('Alex')
-	);
+		v.name.includes('Alex') ||
+		v.name.includes('Microsoft David') ||
+		v.name.includes('Daniel')	);
 	if (preferred) utterance.voice = preferred;
 	window.speechSynthesis.speak(utterance);
 };
@@ -60,6 +59,26 @@ const Pokedex = observer(() => {
 			setTimeout(() => speakText(cleaned), 500);
 	}
   }, []);
+
+	const saveStats = async (field, value) => {
+		if (!store.capture._id) return
+		try {
+			await fetch('/api/pokemon/stats', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ _id: store.capture._id, [field]: value })
+			})
+		} catch (e) {}
+	}
+
+	useEffect(() => {
+		if (store.capture) {
+			setCaptured(store.capture.captured || false)
+			setCapturedCount(store.capture.capturedCount || 0)
+			setShiny(store.capture.shiny || false)
+			setShinyCount(store.capture.shinyCount || 0)
+		}
+	}, [])
 
   const type = store.capture.type.toLowerCase();
   const firstType = type.split(/[^a-zA-Z]/g)[0];
@@ -130,16 +149,16 @@ const Pokedex = observer(() => {
 					<div className="stat-icon w-8"><IconCaptured /></div>
 					<div className="stat-attr w-24">Captured</div>
 					<div className="stat-value flex items-center gap-2">
-						<input type="checkbox" checked={captured} onChange={(e) => setCaptured(e.target.checked)} className="w-4 h-4" />
-						<input type="number" value={capturedCount} onChange={(e) => setCapturedCount(parseInt(e.target.value) || 0)} className="w-12 border rounded px-1 text-center" min="0" />
+						<input type="checkbox" checked={captured} onChange={(e) => { setCaptured(e.target.checked); saveStats('captured', e.target.checked) }} className="w-4 h-4" />
+						<input type="number" value={capturedCount} onChange={(e) => { const v = parseInt(e.target.value) || 0; setCapturedCount(v); saveStats('capturedCount', v) }} className="w-12 border rounded px-1 text-center" min="0" />
 					</div>
 				</div>
 				<div className="stat p-2">
 					<div className="stat-icon w-8"><IconShiny /></div>
 					<div className="stat-attr w-24">Shiny</div>
 					<div className="stat-value flex items-center gap-2">
-						<input type="checkbox" checked={shiny} onChange={(e) => setShiny(e.target.checked)} className="w-4 h-4" />
-						<input type="number" value={shinyCount} onChange={(e) => setShinyCount(parseInt(e.target.value) || 0)} className="w-12 border rounded px-1 text-center" min="0" />
+						<input type="checkbox" checked={shiny} onChange={(e) => { setShiny(e.target.checked); saveStats('shiny', e.target.checked) }} className="w-4 h-4" />
+						<input type="number" value={shinyCount} onChange={(e) => { const v = parseInt(e.target.value) || 0; setShinyCount(v); saveStats('shinyCount', v) }} className="w-12 border rounded px-1 text-center" min="0" />
 					</div>
 				</div>
 			</div>
