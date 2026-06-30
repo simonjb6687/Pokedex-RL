@@ -36,6 +36,7 @@ class appStore {
 	}
 
 	leaderboard = []
+	useBrowserVoice = false;
 
 	async init(){
 		try {
@@ -68,14 +69,14 @@ class appStore {
 		const { user } = await response.json();
 		console.log(`getUser`,user)
 		if (user) {
-			this.profile = { ...user }	
+			this.profile = { ...user }
 		}
 		this.getPokemon()
 	}
 
 
 	pokemon = []
-	
+
 	keyword = ""
 	get filteredPokemon(){
 		return this.pokemon.filter(poke => {
@@ -122,7 +123,7 @@ class appStore {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ 
+			body: JSON.stringify({
 				_id
 			}),
 		});
@@ -153,14 +154,14 @@ class appStore {
 			headers: {
 				'Content-Type': 'application/json'
 			},
-			body: JSON.stringify({ 
+			body: JSON.stringify({
 				capture: this.capture
 			 }),
 		});
 		const data = await response.json();
-		this.capture = { 
-			...data.entry, 
-			image: this.capture.image 
+		this.capture = {
+			...data.entry,
+			image: this.capture.image
 		}
 		if(this.capture.description == "No object identified." || this.capture.description == "No object detected."){
 		} else {
@@ -168,60 +169,52 @@ class appStore {
 		}
 		this.router.push('/pokedex/preview')
 		store.picture.buttonPressed = false
-		store.picture.loadingContent = false
-	} 
-
-	pollingVoice;
-	voicePollCount = 0;
-	useBrowserVoice = false;
+        store.picture.loadingContent = false
+	}
 
 	fetchVoice = async () => {
-		if(!store.capture.description){
-			return false
-		}
-		if(store.capture.voiceUrl){
-			return false
-		}
-		this.voicePollCount++;
-		if(this.voicePollCount > 6){
-			this.useBrowserVoice = true;
-			return false;
-		}
-		const bodyData = {
-			capture: {
-				_id: store.capture._id,
-				inference_job_token: store.capture.inference_job_token,
-				description: store.capture.description,
-				voiceUrl: store.capture.voiceUrl,
+		if(!store.capture.description) return false;
+		if(store.capture.voiceUrl) return false;
+
+		try {
+			const response = await fetch("/api/voice", {
+				method: "POST",
+				headers: { 'Content-Type': 'application/json' },
+				cache: 'no-store',
+				body: JSON.stringify({
+					capture: {
+						_id: store.capture._id,
+						description: store.capture.description,
+						voiceUrl: store.capture.voiceUrl,
+					}
+				}),
+			});
+			const data = await response.json();
+			this.capture = { ...this.capture, ...data.capture };
+
+			if (data.capture.useBrowserVoice) {
+				this.useBrowserVoice = true;
 			}
-		}
-		const response = await fetch("/api/voice", {
-			method: "POST",
-			headers: {
-				'Content-Type': 'application/json'
-			},
-			cache: 'no-store',
-			body: JSON.stringify(bodyData),
-		});
-		const data = await response.json();
-		this.capture = { 
-			...this.capture, 
-			...data.capture 
-		}
-		const index = this.pokemon.findIndex(poke => poke._id && this.capture._id && poke._id.$uuid == this.capture._id.$uuid)
-		if(index >= 0) this.pokemon[index] = { ...this.capture }
-		if(this.capture.voiceStatus != "complete_success"){
-			this.pollingVoice = setTimeout(this.fetchVoice, 5000);
+
+			if (this.capture._id) {
+				const index = this.pokemon.findIndex(poke =>
+					poke._id && this.capture._id &&
+					poke._id.$uuid == this.capture._id.$uuid
+				);
+				if (index >= 0) this.pokemon[index] = { ...this.capture };
+			}
+		} catch (err) {
+			console.error("fetchVoice error:", err);
+			this.useBrowserVoice = true;
 		}
 	}
 
 	viewPoke = async (poke) => {
 		this.capture = { ...poke }
-		this.voicePollCount = 0;
 		this.useBrowserVoice = false;
 		this.router.push('/pokedex/preview/');
 	}
-	
+
 }
 
 export default appStore
