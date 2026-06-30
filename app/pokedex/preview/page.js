@@ -31,22 +31,17 @@ const Pokedex = observer(() => {
   const initialized = useRef(false)
 
   useEffect(() => {
-	// Fix so that it doesn't run on first render
 	if (!initialized.current) {
 		initialized.current = true
 		store.fetchVoice();
 	}
 	return () => {
-		// if(store.pollingVoice){
-			clearInterval(store.pollingVoice)
-		// }
+		clearInterval(store.pollingVoice)
 	}
   }, []);
 
-  const type = store.capture.type.toLowerCase();
-  const firstType = type.split(/[^a-zA-Z]/g)[0];
-  const typeBgLight = "bg-100-" + type.replace(/[^a-zA-Z]/g, " bg-100-");
-  const typeBg = "bg-" + type.replace(/[^a-zA-Z]/g, " bg-");
+  const type = store.capture.type ? store.capture.type.toLowerCase() : "normal";
+  const firstType = type.split(/[^a-zA-Z]/g)[0] || "normal";
 
   return (
     <>
@@ -61,7 +56,6 @@ const Pokedex = observer(() => {
 		  	<div className="title">
 			  {store.capture.object}
 			</div>
-			
 
 			<div
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mt-2 mb-2 font-medium bg-${firstType}`}
@@ -71,15 +65,11 @@ const Pokedex = observer(() => {
             </span>
             {store.capture.type}
             </div>
-			
-			
 
-			{store.capture.voiceUrl ? 
-			<audio 
+			{store.capture.voiceUrl ?
+			<audio
 			className="mb-2"
-			src={store.capture.voiceUrl} controls 
-			// autoPlay 
-			// playsInline 
+			src={store.capture.voiceUrl} controls
 			/> : <div>
 			<button type="button" className="inline-flex items-center px-4 py-2  leading-6 text-sm shadow rounded-full text-gray-500 bg-gray-200 hover:bg-gray-100 transition ease-in-out duration-150 cursor-not-allowed mb-2" disabled="">
 				<svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -89,12 +79,10 @@ const Pokedex = observer(() => {
 				Processing Audio...
 			</button>
 			</div>}
-			
+
 			<div className="description">
 				{store.capture.description}
 			</div>
-
-			
 
 		  	<div className="stats divide-y">
 			  <div className="stat p-2">
@@ -143,13 +131,12 @@ const Pokedex = observer(() => {
 							suggestedMax: 50
 						}
 					},
-					
 				}}
 				data={{
 					label: '',
 					labels: [
-						'HP', 
-						'Attack', 
+						'HP',
+						'Attack',
 						'Defense',
 						'Speed',
 						'Height',
@@ -168,21 +155,19 @@ const Pokedex = observer(() => {
 						backgroundColor: 'rgba(255, 99, 132, 0.2)',
       					borderColor: 'rgba(255, 99, 132, 1)',
 						borderWidth: 1,
-						// tension: 0.1,
 					}]
 				}}
-				// {...props}
 			/>
 			</div>
 
-			<div className="flex justify-center cursor-pointer" onClick={()=> store.deletePokemon(store.entry)}>
+			<div className="flex justify-center cursor-pointer" onClick={()=> store.deletePokemon(store.capture)}>
 				<img src={ButtonDelete.src} width="320" />
 			</div>
 
 		  </div>
-			
+
 		</>
-		
+
       <Footer />
     </>
   );
