@@ -174,7 +174,7 @@ class appStore {
 
 	fetchVoice = async () => {
 		if(!store.capture.description) return false;
-		if(store.capture.voiceUrl) return false;
+		if(store.capture.voiceUrl?.startsWith('data:audio')) return false;
 
 		try {
 			const response = await fetch("/api/voice", {
