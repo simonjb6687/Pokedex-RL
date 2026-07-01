@@ -35,6 +35,7 @@ export async function POST(req) {
 												text: cleaned,
 												reference_id: '57a07a0af0954230a44d1db3adc77940',
 												format: 'mp3',
+													model: 's2.1-pro-free',
 							}),
 			});
 
