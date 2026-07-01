@@ -30,8 +30,8 @@ const speakText = (text) => {
 	if (typeof window === 'undefined' || !window.speechSynthesis) return;
 	window.speechSynthesis.cancel();
 	const utterance = new SpeechSynthesisUtterance(text);
-	utterance.pitch = 0.6;
-	utterance.rate = 0.9;
+	utterance.pitch = 0.57;
+	utterance.rate = 1.2;
 	utterance.volume = 1;
 	const voices = window.speechSynthesis.getVoices();
 	const preferred = voices.find(v =>
